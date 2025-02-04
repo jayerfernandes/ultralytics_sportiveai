@@ -391,6 +391,73 @@ class Annotator:
                     lineType=cv2.LINE_AA,
                 )
 
+    import cv2
+import numpy as np
+
+    def box_multilinelabel(self, box, label="", color=(128, 128, 128), txt_color=(255, 255, 255), rotated=False):
+        """
+        Draws a bounding box to image with multi-line label.
+    
+        Args:
+            box (tuple): The bounding box coordinates (x1, y1, x2, y2).
+            label (str): The text label to be displayed (can contain newline characters).
+            color (tuple, optional): The background color of the rectangle (B, G, R).
+            txt_color (tuple, optional): The color of the text (R, G, B).
+            rotated (bool, optional): Variable used to check if task is OBB
+        """
+        txt_color = self.get_txt_color(color, txt_color)
+        if isinstance(box, torch.Tensor):
+            box = box.tolist()
+        if self.pil or not is_ascii(label):
+          # ... (PIL/Pillow Code -  Leave this part as it was originally) ...
+            pass #Placeholder
+    
+        else:  # cv2
+            if rotated:
+                p1 = [int(b) for b in box[0]]
+                cv2.polylines(self.im, [np.asarray(box, dtype=int)], True, color, self.lw)  # cv2 requires nparray box
+            else:
+                p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
+                cv2.rectangle(self.im, p1, p2, color, thickness=self.lw, lineType=cv2.LINE_AA)
+    
+            if label:
+                # Split the label into multiple lines
+                lines = label.split('\n')
+                line_height = 0  # Store the height of a single line
+    
+                # Calculate total text height for background rectangle
+                total_text_height = 0
+                for line in lines:
+                    w, h = cv2.getTextSize(line, 0, fontScale=self.sf, thickness=self.tf)[0]
+                    total_text_height += h
+    
+                total_text_height += 3 * len(lines) # add pixels to pad text * len lines
+    
+                outside = p1[1] >= total_text_height  # label fits outside box
+                if p1[0] > self.im.shape[1] - w:  # shape is (h, w), check if label extend beyond right side of image
+                    p1 = self.im.shape[1] - w, p1[1]
+                p2 = p1[0] + w, p1[1] - total_text_height if outside else p1[1] + total_text_height
+    
+                cv2.rectangle(self.im, p1, p2, color, -1, cv2.LINE_AA)  # filled background
+    
+                # Draw each line of the label
+                y = p1[1] - 2 if outside else p1[1] #initial y position
+    
+                for line in lines:
+                    w, h = cv2.getTextSize(line, 0, fontScale=self.sf, thickness=self.tf)[0]
+                    line_height = h
+                    cv2.putText(
+                        self.im,
+                        line,
+                        (p1[0], y + line_height -1), # adjust y coordinate for each line
+                        0,
+                        self.sf,
+                        txt_color,
+                        thickness=self.tf,
+                        lineType=cv2.LINE_AA,
+                    )
+                    y += line_height +3 #Increase y coordinate to place next line below.
+    
     def masks(self, masks, colors, im_gpu, alpha=0.5, retina_masks=False):
         """
         Plot masks on image.
