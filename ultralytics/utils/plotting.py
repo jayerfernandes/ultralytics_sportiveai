@@ -391,9 +391,6 @@ class Annotator:
                     lineType=cv2.LINE_AA,
                 )
 
-    import cv2
-import numpy as np
-
     def box_multilinelabel(self, box, label="", color=(128, 128, 128), txt_color=(255, 255, 255), rotated=False):
         """
         Draws a bounding box to image with multi-line label.
